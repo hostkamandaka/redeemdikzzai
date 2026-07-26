@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kode Redeem — Dikzz AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#05070c;
+    --bg-1:#0a0f1a;
+    --panel:#0d1420;
+    --line:#1c2534;
+    --cyan:#37f0d8;
+    --magenta:#ff3fb0;
+    --amber:#ffb020;
+    --text:#e7f0f5;
+    --text-dim:#7c8ba0;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html,body{height:100%;}
+
+  body{
+    font-family:'Space Grotesk', sans-serif;
+    background:var(--bg-0);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 18px;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  .stage{
+    flex:1;
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    z-index:2;
+  }
+
+  /* ---------- Background: grid + drifting glow + scanlines ---------- */
+  .bg-grid{
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(55,240,216,0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(55,240,216,0.055) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 35%, #000 40%, transparent 100%);
+    z-index:0;
+  }
+
+  .bg-glow{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(600px 400px at 18% 15%, rgba(55,240,216,0.14), transparent 60%),
+      radial-gradient(560px 420px at 85% 80%, rgba(255,63,176,0.13), transparent 60%);
+    animation:drift 14s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{ transform:translate(0,0); }
+    100%{ transform:translate(18px,-14px); }
+  }
+
+  .scanlines{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.02) 0px,
+      rgba(255,255,255,0.02) 1px,
+      transparent 2px,
+      transparent 4px
+    );
+    opacity:.5;
+  }
+
+  .noise-vignette{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    box-shadow: inset 0 0 220px rgba(0,0,0,0.85);
+  }
+
+  /* ---------- Card ---------- */
+  .card{
+    position:relative; z-index:2;
+    width:100%; max-width:480px;
+    background:linear-gradient(180deg, var(--panel), #090d16);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:34px 28px 28px;
+    box-shadow:
+      0 0 0 1px rgba(55,240,216,0.05),
+      0 30px 80px -20px rgba(0,0,0,0.7),
+      0 0 60px -15px rgba(55,240,216,0.15);
+  }
+
+  .corner{
+    position:absolute; width:16px; height:16px;
+    border:2px solid var(--cyan); opacity:.75;
+  }
+  .corner.tl{ top:-1px; left:-1px; border-right:none; border-bottom:none; border-radius:8px 0 0 0;}
+  .corner.tr{ top:-1px; right:-1px; border-left:none; border-bottom:none; border-radius:0 8px 0 0;}
+  .corner.bl{ bottom:-1px; left:-1px; border-right:none; border-top:none; border-radius:0 0 0 8px;}
+  .corner.br{ bottom:-1px; right:-1px; border-left:none; border-top:none; border-radius:0 0 8px 0;}
+
+  /* ---------- Header / logo ---------- */
+  .brand{
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:22px;
+  }
+  .logo-wrap{
+    width:46px; height:46px; border-radius:12px;
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    flex-shrink:0;
+    box-shadow:0 0 18px rgba(55,240,216,0.18);
+  }
+  .logo-wrap img{ width:100%; height:100%; object-fit:cover; }
+  .logo-fallback{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:800; font-size:14px; color:var(--cyan);
+    letter-spacing:.5px;
+  }
+  .brand-text .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px; letter-spacing:2.5px;
+    color:var(--text-dim); text-transform:uppercase;
+  }
+  .brand-text .name{
+    font-weight:700; font-size:16px; letter-spacing:.3px;
+  }
+
+  h1{
+    font-size:23px;
+    line-height:1.3;
+    font-weight:700;
+    margin-bottom:6px;
+    letter-spacing:.2px;
+  }
+  h1 span{ color:var(--cyan); }
+
+  .subtitle{
+    font-size:13.5px;
+    color:var(--text-dim);
+    margin-bottom:26px;
+    line-height:1.55;
+  }
+
+  /* ---------- Vault box ---------- */
+  .vault{
+    position:relative;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:
+      radial-gradient(120% 140% at 50% 0%, rgba(55,240,216,0.06), transparent 60%),
+      var(--bg-1);
+    padding:26px 20px;
+    text-align:center;
+    overflow:hidden;
+    min-height:150px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px;
+  }
+
+  .vault-locked-icon{
+    width:40px; height:40px;
+    color:var(--text-dim);
+    transition:color .3s ease;
+  }
+
+  .vault-hint{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; letter-spacing:1.5px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+  }
+
+  .btn-open{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700; font-size:13px; letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--bg-0);
+    background:linear-gradient(90deg, var(--cyan), #6dfce8);
+    border:none; border-radius:9px;
+    padding:12px 22px;
+    cursor:pointer;
+    box-shadow:0 0 24px -4px rgba(55,240,216,0.6);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-open:hover{ transform:translateY(-1px); box-shadow:0 0 30px -2px rgba(55,240,216,0.75); }
+  .btn-open:active{ transform:translateY(0); }
+
+  /* revealed state */
+  .code-display{
+    display:none;
+    width:100%;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    animation:reveal .45s ease;
+  }
+  @keyframes reveal{
+    from{ opacity:0; transform:scale(.94); }
+    to{ opacity:1; transform:scale(1); }
+  }
+
+  .code-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px; letter-spacing:2px;
+    color:var(--text-dim); text-transform:uppercase;
+  }
+
+  .code-value{
+    font-family:'JetBrains Mono', monospace;
+    font-size:26px; font-weight:700;
+    letter-spacing:4px;
+    color:var(--text);
+    background:var(--panel);
+    border:1px dashed rgba(55,240,216,0.4);
+    border-radius:10px;
+    padding:14px 18px;
+    width:100%;
+    word-break:break-all;
+    text-shadow:0 0 14px rgba(55,240,216,0.45);
+  }
+
+  .btn-copy{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700; font-size:12.5px; letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--text);
+    background:transparent;
+    border:1px solid var(--cyan);
+    border-radius:9px;
+    padding:10px 20px;
+    cursor:pointer;
+    transition:background .2s ease, color .2s ease;
+    display:flex; align-items:center; gap:8px;
+  }
+  .btn-copy:hover{ background:rgba(55,240,216,0.1); }
+  .btn-copy.copied{
+    border-color:var(--magenta);
+    color:var(--magenta);
+  }
+
+  .vault.unlocked{
+    border-color:rgba(55,240,216,0.35);
+  }
+
+  .status-empty{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; color:var(--amber);
+    display:none;
+  }
+
+  /* ---------- Instructions ---------- */
+  .instructions{
+    margin-top:24px;
+    border-top:1px dashed var(--line);
+    padding-top:20px;
+  }
+  .instructions p{
+    font-size:13.5px;
+    color:var(--text-dim);
+    line-height:1.65;
+    margin-bottom:10px;
+  }
+  .instructions code{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    color:var(--cyan);
+    padding:2px 7px;
+    border-radius:6px;
+  }
+  .instructions .example{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    text-align:center;
+    margin-top:26px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:.5px;
+    color:var(--text-dim);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  footer .brand-line{ color:var(--text-dim); }
+  footer .copy-line{ color:var(--text-dim); }
+
+  @media (max-width:420px){
+    .card{ padding:26px 18px 22px; }
+    .code-value{ font-size:21px; letter-spacing:2.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .bg-glow{ animation:none; }
+    .code-display{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="scanlines"></div>
+  <div class="noise-vignette"></div>
+
+  <div class="stage">
+  <main class="card">
+    <span class="corner tl"></span>
+    <span class="corner tr"></span>
+    <span class="corner bl"></span>
+    <span class="corner br"></span>
+
+    <div class="brand">
+      <div class="logo-wrap">
+        <img src="logo.jpg" alt="Logo Dikzz AI" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:none;">DZ</div>
+      </div>
+      <div class="brand-text">
+        <div class="eyebrow">Dikzz AI</div>
+        <div class="name">Sistem Redeem</div>
+      </div>
+    </div>
+
+    <h1>Kode Redeem <span>Dikzz AI</span></h1>
+    <p class="subtitle">Buka kotak di bawah untuk menampilkan kode redeem kamu, lalu salin dan tukarkan lewat bot.</p>
+
+    <div class="vault" id="vault">
+      <svg class="vault-locked-icon" id="lockIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="4" y="10.5" width="16" height="10" rx="2"/>
+        <path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/>
+        <circle cx="12" cy="15" r="1.4" fill="currentColor" stroke="none"/>
+      </svg>
+      <div class="vault-hint" id="vaultHint">Kotak terkunci</div>
+      <button class="btn-open" id="openBtn">Buka Kotak</button>
+
+      <div class="code-display" id="codeDisplay">
+        <div class="code-label">Kode kamu</div>
+        <div class="code-value" id="codeValue">——————</div>
+        <button class="btn-copy" id="copyBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span id="copyBtnText">Salin Kode</span>
+        </button>
+      </div>
+
+      <div class="status-empty" id="statusEmpty">Kode belum tersedia. Coba lagi nanti.</div>
+    </div>
+
+    <div class="instructions">
+      <p>Silakan redeem kodenya dengan cara: salin kode di atas, lalu kirim ke grup bot Dikzz AI dengan perintah:</p>
+      <p><code>.redeem (kodenya)</code></p>
+      <p class="example">Contoh: <code>.redeem ADGFH</code></p>
+    </div>
+  </main>
+  </div>
+
+  <footer>
+    <span class="brand-line">Dikzz AI</span>
+    <span class="copy-line">&copy; <span id="year"></span> Gx Dikzz</span>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const openBtn = document.getElementById('openBtn');
+    const vault = document.getElementById('vault');
+    const vaultHint = document.getElementById('vaultHint');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const codeValue = document.getElementById('codeValue');
+    const statusEmpty = document.getElementById('statusEmpty');
+    const copyBtn = document.getElementById('copyBtn');
+    const copyBtnText = document.getElementById('copyBtnText');
+    const lockIcon = document.getElementById('lockIcon');
+
+    let currentCode = '';
+
+    async function loadCode(){
+      try{
+        const res = await fetch('kode.txt', { cache: 'no-store' });
+        if(!res.ok) throw new Error('gagal fetch');
+        const text = (await res.text()).trim();
+        if(!text) throw new Error('kosong');
+        currentCode = text;
+        return true;
+      }catch(err){
+        return false;
+      }
+    }
+
+    openBtn.addEventListener('click', async () => {
+      openBtn.disabled = true;
+      openBtn.textContent = 'Membuka...';
+      const ok = await loadCode();
+
+      if(ok){
+        openBtn.style.display = 'none';
+        vaultHint.style.display = 'none';
+        lockIcon.style.display = 'none';
+        vault.classList.add('unlocked');
+        codeDisplay.style.display = 'flex';
+        codeValue.textContent = currentCode;
+      }else{
+        openBtn.disabled = false;
+        openBtn.textContent = 'Buka Kotak';
+        statusEmpty.style.display = 'block';
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(currentCode);
+      }catch(err){
+        const ta = document.createElement('textarea');
+        ta.value = currentCode;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.classList.add('copied');
+      copyBtnText.textContent = 'Tersalin!';
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtnText.textContent = 'Salin Kode';
+      }, 1800);
+    });
+  </script>
+
+</body>
+</html>
